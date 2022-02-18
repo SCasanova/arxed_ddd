@@ -1,12 +1,5 @@
 library(shiny)
-library(tidyverse)
-library(gt)
-library(webshot)
-library(shinyTree)
-library(lazyeval)
-library(shinyjs)
-library(plotly)
-library(shinyscreenshot)
+library(magrittr)
 
 options(scipen = 99999)
 
@@ -14,9 +7,9 @@ options(scipen = 99999)
 webshot::install_phantomjs()
 
 ## Read in full school info data frame
-school_info <- read_csv("school_info.csv") %>%
-    mutate(
-        district_name = case_when(
+school_info <- readr::read_csv("school_info.csv") %>%
+    dplyr::mutate(
+        district_name = dplyr::case_when(
             district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
             district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
             district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
@@ -27,18 +20,18 @@ school_info <- read_csv("school_info.csv") %>%
 
 ## Create vector of district names for dropdown menus
 district_names <- school_info %>%
-    filter(district_name != "State Total", district_name != "State Totals") %>%
-    select(district_name) %>%
-    distinct() %>%
-    rename(`District` = district_name)
+    dplyr::filter(district_name != "State Total", district_name != "State Totals") %>%
+    dplyr::select(district_name) %>%
+    dplyr::distinct() %>%
+    dplyr::rename(`District` = district_name)
 
 ## Create vector of academic years for dropdown menus
 years <- school_info %>%
-    filter(!is.na(year)) %>%
-    select(year) %>%
-    arrange(desc(year)) %>%
-    distinct() %>%
-    rename(Year = year)
+    dplyr::filter(!is.na(year)) %>%
+    dplyr::select(year) %>%
+    dplyr::arrange(dplyr::desc(year)) %>%
+    dplyr::distinct() %>%
+    dplyr::rename(Year = year)
 
 ## Create vector of major stat categories for dropdown menus
 stat_categories <- c(
@@ -84,20 +77,20 @@ function(request){
         # tags$head(tags$style(".shiny-output-error:after{content: 'Please select quarterback.'; visibility: visible}")),
         
         # Application title
-        titlePanel(title=div(img(src = "logo.png", height = "15%", width = "15%"), "Data-Driven Decision"),
+        titlePanel(title=div(img(src = "logo.png", height = "15%", width = "15%"), "Data-Driven Decisions"),
                    windowTitle="ArxEd | D3"),
         
         
         
         ## Sidebar to choose district, year, and comparisons
-        useShinyjs(),
+        shinyjs::useShinyjs(),
         sidebarLayout(
             sidebarPanel(div(id = "Sidebar",
                              column(4,
                                     selectizeInput("district", label = "1. Enter your district:",
                                         choices = district_names, selected = ""),
                                     selectizeInput("comp_year", label = "2. Enter the year you wish to examine:",
-                                           choices = years, selected = "")),
+                                           choices = years, selected = years[2,])),
                              column(4,
                                     ## NOTE: auto-select checkboxes broken into two columns for aesthetic reasons
                                     tags$label("3. Choose comparison district categories to auto-select:"),
@@ -160,13 +153,15 @@ function(request){
                          actionButton("toggle_sidebar", label = "Show/Hide District Selector"), width = 12),
             mainPanel(
                 navbarPage(markdown("ArxEd | D<sup>3</sup>"),
+
+# Home --------------------------------------------------------------------
                            tabPanel("Home",
                                     fluidRow(
                                         column(style='padding:20px', width = 12,
-                                               screenshotButton(label = 'Download as Image', filename = 'ddn_dashboard'))),
+                                               shinyscreenshot::screenshotButton(label = 'Download as Image', filename = 'ddn_dashboard'))),
                                     fluidRow(
                                         column(3,
-                                               gt_output("summary_table")),
+                                               gt::gt_output("summary_table")),
                                         column(8,
                                                h1(textOutput("district")),
                                                h3("-----"),
@@ -183,52 +178,58 @@ function(request){
                                                h3("  "),
                                                imageOutput("legend2", height = "50px"),
                                                h3("  "),
-                                               plotlyOutput("cola_plot", height = "auto")),
+                                               plotly::plotlyOutput("cola_plot", height = "auto")),
                                         column(style='padding:10px', width = 9,
                                                imageOutput("legend", height = "50px"),
                                                h3("  "),
-                                               plotlyOutput("total_exp_plot", height = "auto"))
+                                               plotly::plotlyOutput("total_exp_plot", height = "auto"))
                                     ),
                                     fluidRow(
                                         column(style='border-right: 2px solid black; padding:20px', width = 3,
-                                               plotlyOutput("upper_left_salary_plot", height = "auto")),
+                                               plotly::plotlyOutput("upper_left_salary_plot", height = "auto")),
                                         column(style='padding:10px', width = 3,
-                                               plotlyOutput("per_pupil_exp_plot", height = "auto")),
+                                               plotly::plotlyOutput("per_pupil_exp_plot", height = "auto")),
                                         column(style='padding:10px', width = 3,
-                                               plotlyOutput("average_salary_plot", height = "auto")),
+                                               plotly::plotlyOutput("average_salary_plot", height = "auto")),
                                         column(style='padding:10px', width = 3,
-                                               plotlyOutput("num_students_plot", height = "auto"))
+                                               plotly::plotlyOutput("num_students_plot", height = "auto"))
                                     ),
                                     fluidRow(
                                         column(style='border-right: 2px solid black; padding:20px', width = 3,
-                                               plotlyOutput("lower_right_salary_plot", height = "auto")),
+                                               plotly::plotlyOutput("lower_right_salary_plot", height = "auto")),
                                         column(style='border-right: padding:10px', width = 3,
-                                               plotlyOutput("sat_plot", height = "auto")),
+                                               plotly::plotlyOutput("sat_plot", height = "auto")),
                                         column(style='border-right: padding:10px', width = 3,
-                                               plotlyOutput("ap_plot", height = "auto")),
+                                               plotly::plotlyOutput("ap_plot", height = "auto")),
                                         column(style='padding:10px', width = 3,
-                                               plotlyOutput("teacher_fte_plot", height = "auto"))
+                                               plotly::plotlyOutput("teacher_fte_plot", height = "auto"))
                                     ),
                                     fluidRow(
                                         column(style='border-right: 2px solid black; padding:20px', width = 3,
-                                               plotlyOutput("yearly_salary_plot", height = "auto")),
+                                               plotly::plotlyOutput("yearly_salary_plot", height = "auto")),
                                         column(style='padding:10px', width = 6,
-                                               plotlyOutput("mcas_plot", height = "auto")),
+                                               plotly::plotlyOutput("mcas_plot", height = "auto")),
                                         column(style='padding:10px', width = 3,
-                                               plotlyOutput("student_demo_plot", height = "auto"))
+                                               plotly::plotlyOutput("student_demo_plot", height = "auto"))
                                     )
                                     ),
+
+# Overview ----------------------------------------------------------------
                            tabPanel("Overview",
                                     sidebarPanel(
-                                        radioButtons("individuals", label = "Show individual comparison districts?", choices = c("No","Yes")),
+                                        shiny::radioButtons("individuals", label = "Show individual comparison districts?", choices = c("No","Yes")),
                                         downloadButton("download_table", label = "Download Image"),
                                         downloadButton("download_csv", label = "Download CSV"),
                                         width = 2),
-                                    mainPanel(gt_output("comparisons_table"), width = 10)),
+                                    mainPanel(gt::gt_output("comparisons_table"), width = 10)),
+
+# Plots -------------------------------------------------------------------
+
+
                            tabPanel("Plots",
                                     fluidRow(
                                         column(style='padding:20px', width = 12,
-                                               screenshotButton(label = 'Download as Image', filename = 'ddn_dashboard'))),
+                                               shinyscreenshot::screenshotButton(label = 'Download as Image', filename = 'ddn_dashboard'))),
                                     sidebarPanel(
                                         selectizeInput("plot_type", label = "Plot type", choices = c("Bar","Scatter","Pie")),
                                         ## X-Axis option only available for scatter plots
@@ -241,7 +242,99 @@ function(request){
                                         selectizeInput("y_cat", label = "Y-Axis Category", choices = stat_categories),
                                         selectizeInput("y", label = "Y-Axis", choices = NULL),
                                         width = 2),
-                                    mainPanel(plotlyOutput("userplot"), width = 10))),
+                                    mainPanel(plotly::plotlyOutput("userplot"), width = 10)),
+                            tabPanel(
+                                "Students",
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        shinyscreenshot::screenshotButton(label = 'Download as Image', filename = 'ddn_students')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        plotly::plotlyOutput('student_general')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        plotly::plotlyOutput('student_needs')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 8,
+                                        plotly::plotlyOutput('student_diversity')
+                                    ),
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 4,
+                                        plotly::plotlyOutput('student_diversity_pie')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        plotly::plotlyOutput('student_mobility')
+                                    )
+                                ),
+                            ),
+                            tabPanel(
+                                "Staff",
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        shinyscreenshot::screenshotButton(label = 'Download as Image', filename = 'ddn_students')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 6,
+                                        plotly::plotlyOutput('staff_general')
+                                    ),
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 6,
+                                        plotly::plotlyOutput('staff_ratio')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        plotly::plotlyOutput('')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 8,
+                                        plotly::plotlyOutput('')
+                                    ),
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 4,
+                                        plotly::plotlyOutput('')
+                                    )
+                                ),
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        plotly::plotlyOutput('')
+                                    )
+                                ),
+                            )
+                                            ), 
                 width = 12)
         )
 ))}

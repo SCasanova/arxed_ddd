@@ -1,10 +1,5 @@
 library(shiny)
-library(tidyverse)
-library(gt)
-library(webshot)
-library(shinyTree)
-library(lazyeval)
-library(shinyjs)
+library(magrittr)
 library(plotly)
 
 options(scipen = 99999)
@@ -13,37 +8,37 @@ color_palette <- c("darkred", "white", "darkgreen")
 
 gt_theme_538 <- function(data,...) {
     data %>%
-        opt_all_caps()  %>%
-        opt_table_font(
-            font = list(default_fonts())
+        gt::opt_all_caps()  %>%
+        gt::opt_table_font(
+            font = list(gt::default_fonts())
         ) %>%
-        tab_style(
-            style = cell_borders(
-                sides = "bottom", color = "black", weight = px(3)
+        gt::tab_style(
+            style = gt::cell_borders(
+                sides = "bottom", color = "black", weight = gt::px(3)
             ),
-            locations = cells_body(
+            locations = gt::cells_body(
                 columns = TRUE,
                 # This is a relatively sneaky way of changing the bottom border
                 # Regardless of data size
                 rows = nrow(data$`_data`)
             )
         )  %>% 
-        tab_options(
+        gt::tab_options(
             column_labels.background.color = "white",
-            table.border.top.width = px(3),
+            table.border.top.width = gt::px(3),
             table.border.top.color = "white",
             table.border.bottom.color = "white",
-            table.border.bottom.width = px(3),
+            table.border.bottom.width = gt::px(3),
             table_body.border.bottom.color = "black",
-            column_labels.border.top.width = px(3),
+            column_labels.border.top.width = gt::px(3),
             column_labels.border.top.color = "black",
             column_labels.border.lr.color = "grey",
             column_labels.vlines.style = "solid",
             table_body.vlines.style = "solid",
             table_body.vlines.color = "lightgrey",
-            column_labels.border.bottom.width = px(3),
+            column_labels.border.bottom.width = gt::px(3),
             column_labels.border.bottom.color = "black",
-            data_row.padding = px(3),
+            data_row.padding = gt::px(3),
             source_notes.font.size = 12,
             table.font.size = 16,
             heading.align = "left",
@@ -52,22 +47,22 @@ gt_theme_538 <- function(data,...) {
 }
 
 ## Read in DART schools, manually removing duplicate columns (created by virtue of scraper)
-dart <- read_csv("all_dart.csv") %>%
-    select(-c(
+dart <- readr::read_csv("all_dart.csv") %>%
+    dplyr::select(-c(
         `Berlin-Boylston...36`,
         `Brooke Charter School (District)...58`,
         `Edward M. Kennedy Academy for Health Careers (Horace Mann Charter) (District)...107`,
         `Greenfield Commonwealth Virtual District...136`
     )) %>%
-    distinct() %>%
-    rename(district_name = `...1`) %>%
+    dplyr::distinct() %>%
+    dplyr::rename(district_name = `...1`) %>%
     as.data.frame()
 
 ## Read in school info data frame, adding new column called "DART name" for district's name in DART database
 # NOTE: for most districts, this is just their name, but some have special cases (see below)
-school_info <- read_csv("school_info.csv") %>%
-    mutate(
-        dart_name = case_when(
+school_info <- readr::read_csv("school_info.csv") %>%
+    dplyr::mutate(
+        dart_name = dplyr::case_when(
             district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
             district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
             district_name == "Hampden Charter School of Science (District)" ~ "Hampden Charter School of Science East (District)",
@@ -78,7 +73,70 @@ school_info <- read_csv("school_info.csv") %>%
             district_name == "Boylston" ~ "Berlin-Boylston",
             district_name == "Berlin" ~ "Berlin-Boylston",
             TRUE ~ district_name),
-        district_name = case_when(
+        district_name = dplyr::case_when(
+            district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
+            district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
+            district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
+            district_name == "Greater Commonwealth Virtual District" ~ "Greenfield Commonwealth Virtual District",
+            district_name == "Southern Worcester County Regional Vocational School District" ~ "Southern Worcester County Regional Vocational Technical",
+            TRUE ~ district_name))
+
+student_needs <- read.csv('student_needs.csv') %>% 
+    dplyr::mutate(
+        dart_name = dplyr::case_when(
+            district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
+            district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
+            district_name == "Hampden Charter School of Science (District)" ~ "Hampden Charter School of Science East (District)",
+            district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
+            district_name == "Brooke Charter School East Boston (District)" ~ "Brooke Charter School (District)",
+            district_name == "Greater Commonwealth Virtual District" ~ "Greenfield Commonwealth Virtual District",
+            district_name == "Southern Worcester County Regional Vocational School District" ~ "Southern Worcester County Regional Vocational Technical",
+            district_name == "Boylston" ~ "Berlin-Boylston",
+            district_name == "Berlin" ~ "Berlin-Boylston",
+            TRUE ~ district_name),
+        district_name = dplyr::case_when(
+            district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
+            district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
+            district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
+            district_name == "Greater Commonwealth Virtual District" ~ "Greenfield Commonwealth Virtual District",
+            district_name == "Southern Worcester County Regional Vocational School District" ~ "Southern Worcester County Regional Vocational Technical",
+            TRUE ~ district_name))
+
+student_diversity <- read.csv('student_diversity.csv') %>% 
+    dplyr::mutate(
+        dart_name = dplyr::case_when(
+            district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
+            district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
+            district_name == "Hampden Charter School of Science (District)" ~ "Hampden Charter School of Science East (District)",
+            district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
+            district_name == "Brooke Charter School East Boston (District)" ~ "Brooke Charter School (District)",
+            district_name == "Greater Commonwealth Virtual District" ~ "Greenfield Commonwealth Virtual District",
+            district_name == "Southern Worcester County Regional Vocational School District" ~ "Southern Worcester County Regional Vocational Technical",
+            district_name == "Boylston" ~ "Berlin-Boylston",
+            district_name == "Berlin" ~ "Berlin-Boylston",
+            TRUE ~ district_name),
+        district_name = dplyr::case_when(
+            district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
+            district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
+            district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
+            district_name == "Greater Commonwealth Virtual District" ~ "Greenfield Commonwealth Virtual District",
+            district_name == "Southern Worcester County Regional Vocational School District" ~ "Southern Worcester County Regional Vocational Technical",
+            TRUE ~ district_name))
+
+student_mobility <- read.csv('student_mobility.csv') %>% 
+    dplyr::mutate(
+        dart_name = dplyr::case_when(
+            district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
+            district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
+            district_name == "Hampden Charter School of Science (District)" ~ "Hampden Charter School of Science East (District)",
+            district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
+            district_name == "Brooke Charter School East Boston (District)" ~ "Brooke Charter School (District)",
+            district_name == "Greater Commonwealth Virtual District" ~ "Greenfield Commonwealth Virtual District",
+            district_name == "Southern Worcester County Regional Vocational School District" ~ "Southern Worcester County Regional Vocational Technical",
+            district_name == "Boylston" ~ "Berlin-Boylston",
+            district_name == "Berlin" ~ "Berlin-Boylston",
+            TRUE ~ district_name),
+        district_name = dplyr::case_when(
             district_name == "Seven Hills Charter Public (District)" ~ "Learning First Charter Public School (District)",
             district_name == "Massachusetts Virtual Academy at Greenfield Commonwealth Virtual District" ~ "Greater Commonwealth Virtual District",
             district_name == "Tri County Regional Vocational Technical" ~ "Tri-County Regional Vocational Technical",
@@ -286,7 +344,7 @@ statistic_names_full <- c(
     "League"
 )
 
-axis_options <- set_names(colnames(school_info), statistic_names_full)
+axis_options <- purrr::set_names(colnames(school_info), statistic_names_full)
 
 # Define server logic required to draw a histogram
 function(input, output, session) {
@@ -299,11 +357,14 @@ function(input, output, session) {
              input$budget[1], input$budget[2], input$enrollment, input$fte, input$salary)
     })
     
+    
+        district <- reactive(input$district)
+    
     # What to do when one of the listened-to events changes
     observeEvent(toListen(), {
         
-        district <- input$district
         
+        district <- input$district
         ### At a high level, the autoselect portion of this observeEvent() creates
         ### individual vectors of the districts that meet at least one of the selected
         ### criteria (lines 322-488). When an autoselect option is not selected, the
@@ -318,19 +379,19 @@ function(input, output, session) {
             
             # Get data frame with DART names and district names
             dart_names <- school_info %>%
-                select(district_name, dart_name) %>%
-                distinct()
+                dplyr::select(district_name, dart_name) %>%
+                dplyr::distinct()
             
             # Get individual district's DART name
             dart_district <- dart_names %>%
-                filter(district_name == district) %>%
-                pull(dart_name)
+                dplyr::filter(district_name == district) %>%
+                dplyr::pull(dart_name)
             
             # Get DART districts
             darts <- dart %>%
-                select(district_name, as.name(district)) %>%
-                filter(get(dart_district) == 1, district_name != dart_district) %>%
-                pull(district_name)
+                dplyr::select(district_name, as.name(district)) %>%
+                dplyr::filter(get(dart_district) == 1, district_name != dart_district) %>%
+                dplyr::pull(district_name)
             
             # Convert those DART names back to district names
             dart_districts <- c()
@@ -338,8 +399,8 @@ function(input, output, session) {
             for (i in 1:length(darts)){
                 
                 new_dart <- dart_names %>%
-                    filter(dart_name == darts[i]) %>%
-                    pull(district_name)
+                    dplyr::filter(dart_name == darts[i]) %>%
+                    dplyr::pull(district_name)
                 
                 dart_districts <- append(dart_districts, new_dart)
             }
@@ -352,13 +413,13 @@ function(input, output, session) {
         ## Update same county districts
         if ("County" %in% input$autoselect & district != ""){
             
-            school_county <- school_info %>% filter(district_name == district) %>% pull(county)
+            school_county <- school_info %>% dplyr::filter(district_name == district) %>% dplyr::pull(county)
             
             county_districts <- school_info %>%
-                select(district_name, county) %>%
-                filter(district_name != district, county == school_county[1]) %>%
-                distinct() %>%
-                pull(district_name)
+                dplyr::select(district_name, county) %>%
+                dplyr::filter(district_name != district, county == school_county[1]) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         else{
             county_districts <- c()
@@ -367,15 +428,15 @@ function(input, output, session) {
         ## Update same league districts
         if ("League" %in% input$autoselect & district != ""){
             
-            school_league <- school_info %>% filter(district_name == district) %>% pull(league)
+            school_league <- school_info %>% dplyr::filter(district_name == district) %>% dplyr::pull(league)
             
             if (!is.na(school_league[1])){
                 
                 league_districts <- school_info %>%
-                    select(district_name, league) %>%
-                    filter(district_name != district, league == school_league[1]) %>%
-                    distinct() %>%
-                    pull(district_name)
+                    dplyr::select(district_name, league) %>%
+                    dplyr::filter(district_name != district, league == school_league[1]) %>%
+                    dplyr::distinct() %>%
+                    dplyr::pull(district_name)
             }
             else{
                 league_districts <- c()
@@ -389,13 +450,13 @@ function(input, output, session) {
         ## Update same municipality districts
         if ("Municipality" %in% input$autoselect & district != ""){
             
-            school_municipality <- school_info %>% filter(district_name == district) %>% pull(city)
+            school_municipality <- school_info %>% dplyr::filter(district_name == district) %>% dplyr::pull(city)
             
             town_districts <- school_info %>%
-                select(district_name, city) %>%
-                filter(district_name != district, city == school_municipality[1]) %>%
-                distinct() %>%
-                pull(district_name)
+                dplyr::select(district_name, city) %>%
+                dplyr::filter(district_name != district, city == school_municipality[1]) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         else{
             town_districts <- c()
@@ -405,17 +466,17 @@ function(input, output, session) {
         if ("Total Budget within 5%" %in% input$autoselect2 & district != "" & input$comp_year != ""){
             
             district_budget <- school_info %>%
-                filter(district_name == district, year == input$comp_year) %>%
-                pull(total_exp)
+                dplyr::filter(district_name == district, year == input$comp_year) %>%
+                dplyr::pull(total_exp)
             
             budget_hi <- 1.05*district_budget[1]
             budget_lo <- 0.95*district_budget[1]
             
             budget_districts <- school_info %>%
-                select(district_name, total_exp) %>%
-                filter(district_name != district, between(total_exp, budget_lo, budget_hi)) %>%
-                distinct() %>%
-                pull(district_name)
+                dplyr::select(district_name, total_exp) %>%
+                dplyr::filter(district_name != district, dplyr::between(total_exp, budget_lo, budget_hi)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         else{
             budget_districts <- c()
@@ -425,17 +486,17 @@ function(input, output, session) {
         if ("Enrollment within 5%" %in% input$autoselect2 & district != "" & input$comp_year != ""){
             
             district_enrollment <- school_info %>%
-                filter(district_name == district, year == input$comp_year) %>%
-                pull(total_enrollment)
+                dplyr::filter(district_name == district, year == input$comp_year) %>%
+                dplyr::pull(total_enrollment)
             
             enrollment_hi <- 1.05*district_enrollment[1]
             enrollment_lo <- 0.95*district_enrollment[1]
             
             enrollment_districts <- school_info %>%
-                select(district_name, total_enrollment) %>%
-                filter(district_name != district, between(total_enrollment, enrollment_lo, enrollment_hi)) %>%
-                distinct() %>%
-                pull(district_name)
+                dplyr::select(district_name, total_enrollment) %>%
+                dplyr::filter(district_name != district, dplyr::between(total_enrollment, enrollment_lo, enrollment_hi)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         else{
             enrollment_districts <- c()
@@ -445,17 +506,17 @@ function(input, output, session) {
         if ("Teacher FTE within 5%" %in% input$autoselect2 & district != "" & input$comp_year != ""){
             
             district_fte <- school_info %>%
-                filter(district_name == district, year == input$comp_year) %>%
-                pull(total_teachers)
+                dplyr::filter(district_name == district, year == input$comp_year) %>%
+                dplyr::pull(total_teachers)
             
             fte_hi <- 1.05*district_fte[1]
             fte_lo <- 0.95*district_fte[1]
             
             fte_districts <- school_info %>%
-                select(district_name, total_teachers) %>%
-                filter(district_name != district, between(total_teachers, fte_lo, fte_hi)) %>%
-                distinct() %>%
-                pull(district_name)
+                dplyr::select(district_name, total_teachers) %>%
+                dplyr::filter(district_name != district, dplyr::between(total_teachers, fte_lo, fte_hi)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         else{
             fte_districts <- c()
@@ -465,18 +526,18 @@ function(input, output, session) {
         if ("Avg Teacher Salary within 5%" %in% input$autoselect2 & district != "" & input$comp_year != ""){
             
             district_salary <- school_info %>%
-                filter(district_name == district, year == input$comp_year) %>%
-                filter(!is.na(average_salary)) %>%
-                pull(average_salary)
+                dplyr::filter(district_name == district, year == input$comp_year) %>%
+                dplyr::filter(!is.na(average_salary)) %>%
+                dplyr::pull(average_salary)
             
             salary_hi <- 1.05*district_salary[1]
             salary_lo <- 0.95*district_salary[1]
             
             salary_districts <- school_info %>%
-                select(district_name, average_salary) %>%
-                filter(district_name != district, between(average_salary, salary_lo, salary_hi)) %>%
-                distinct() %>%
-                pull(district_name)
+                dplyr::select(district_name, average_salary) %>%
+                dplyr::filter(district_name != district, dplyr::between(average_salary, salary_lo, salary_hi)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         else{
             salary_districts <- c()
@@ -501,11 +562,11 @@ function(input, output, session) {
         if (length(selected_districts) > 0 & "Total Budget" %in% input$filters){
             
             selected_districts <- school_info %>%
-                filter(district_name %in% selected_districts,
+                dplyr::filter(district_name %in% selected_districts,
                        year %in% input$comp_year,
-                       between(total_exp, budget_lo, budget_hi), !is.na(total_exp)) %>%
-                distinct() %>%
-                pull(district_name)
+                       dplyr::between(total_exp, budget_lo, budget_hi), !is.na(total_exp)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         
         ## Filter based on enrollment
@@ -515,11 +576,11 @@ function(input, output, session) {
         if (length(selected_districts) > 0 & "Enrollment" %in% input$filters){
             
             selected_districts <- school_info %>%
-                filter(district_name %in% selected_districts,
+                dplyr::filter(district_name %in% selected_districts,
                        year %in% input$comp_year,
-                       between(total_enrollment, enrollment_lo, enrollment_hi), !is.na(total_enrollment)) %>%
-                distinct() %>%
-                pull(district_name)
+                       dplyr::between(total_enrollment, enrollment_lo, enrollment_hi), !is.na(total_enrollment)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         
         ## Filter based on number of teachers (FTE)
@@ -529,11 +590,11 @@ function(input, output, session) {
         if (length(selected_districts) > 0 & "Teacher FTE" %in% input$filters){
             
             selected_districts <- school_info %>%
-                filter(district_name %in% selected_districts,
+                dplyr::filter(district_name %in% selected_districts,
                        year %in% input$comp_year,
-                       between(total_teachers, fte_lo, fte_hi), !is.na(total_teachers)) %>%
-                distinct() %>%
-                pull(district_name)
+                       dplyr::between(total_teachers, fte_lo, fte_hi), !is.na(total_teachers)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         
         ## Filter based on salary
@@ -543,11 +604,11 @@ function(input, output, session) {
         if (length(selected_districts) > 0 & "Avg Teacher Salary" %in% input$filters){
             
             selected_districts <- school_info %>%
-                filter(district_name %in% selected_districts,
+                dplyr::filter(district_name %in% selected_districts,
                        year %in% input$comp_year,
-                       between(average_salary, salary_lo, salary_hi), !is.na(average_salary)) %>%
-                distinct() %>%
-                pull(district_name)
+                       dplyr::between(average_salary, salary_lo, salary_hi), !is.na(average_salary)) %>%
+                dplyr::distinct() %>%
+                dplyr::pull(district_name)
         }
         
         ### FINALLY, UPDATE THE SELECTIONS
@@ -566,7 +627,22 @@ function(input, output, session) {
         
     })
     
-    ### HOME TAB
+    comp_districts <- reactive(input$comp_districts)
+    district <- reactive(input$district)
+    
+    district_code <- reactive({school_info %>%
+            dplyr::filter(district_name == input$district) %>%
+            dplyr::pull(district_code) %>% 
+            dplyr::first(1)
+        })
+    
+    comp_year <- reactive(input$comp_year)
+    
+    comp_districts <- reactive(input$comp_districts)
+    
+
+# Home Tab ----------------------------------------------------------------
+
     
     # Title of home panel
     output$district <- renderText({
@@ -580,16 +656,15 @@ function(input, output, session) {
     # Subtitle of home panel
     output$comps <- renderText({
         
-        comp_districts <- input$comp_districts
         
-        len_comps <- length(comp_districts)
+        len_comps <- length(comp_districts())
         
         for (i in 1:len_comps){
             if (i == 1){
-                comp_list <- comp_districts[i]
+                comp_list <- comp_districts()[i]
             }
             else{
-                comp_list <- paste0(comp_list, ", ", comp_districts[i])
+                comp_list <- paste0(comp_list, ", ", comp_districts()[i])
             }
         }
         
@@ -598,31 +673,24 @@ function(input, output, session) {
     })
     
     # Summary table for upper-left section of homepage
-    output$summary_table <- render_gt({
+    output$summary_table <- gt::render_gt({
         
-        district <- input$district
-        
-        district_code <- school_info %>%
-            filter(district_name == input$district) %>%
-            pull(district_code)
-        
-        district_code <- district_code[1]
         
         district_df <- school_info %>%
-            filter(district_name == input$district,
-                   year == input$comp_year) %>%
-            mutate(
+            dplyr::filter(district_name == district(),
+                   year == comp_year()) %>%
+            dplyr::mutate(
                 total_enrollment = paste("Enrollment:", total_enrollment),
                 total_teachers = paste("Teacher FTE:", total_teachers),
                 year = paste("Year:", year)) %>%
-            select(year, total_enrollment, total_teachers) %>%
+            dplyr::select(year, total_enrollment, total_teachers) %>%
             t() %>%
             as.data.frame()
         
         district_df %>%
-            gt() %>%
+            gt::gt() %>%
             gt_theme_538() %>%
-            cols_label(V1 = gtExtras::img_header(label = district,
+            gt::cols_label(V1 = gtExtras::img_header(label = district(),
                                                  img_url = "https://www.concordcarlisle.org/wp-content/themes/School/img/logo.png",
                                                  height = 90))
         
@@ -632,16 +700,12 @@ function(input, output, session) {
     # to the average of the selected comparison districts
     plot_comp_df <- reactive({
         
-        district <- input$district
-        comp_districts <- input$comp_districts
-        comp_year <- input$comp_year
-        
         school_info %>%
-            filter(district_name %in% comp_districts | district_name == district,
-                   year == comp_year) %>%
-            mutate(is_district = ifelse(district_name == district, district, "Others")) %>%
-            group_by(is_district) %>%
-            summarize(
+            dplyr::filter(district_name %in% comp_districts() | district_name == district(),
+                   year == comp_year()) %>%
+            dplyr::mutate(is_district = ifelse(district_name == district(), district(), "Others")) %>%
+            dplyr::group_by(is_district) %>%
+            dplyr::summarize(
                 total_exp = mean(total_exp, na.rm = T),
                 salary_total = mean(salary_total, na.rm = T),
                 non_salary_exp = total_exp - salary_total,
@@ -658,7 +722,7 @@ function(input, output, session) {
                 sci_advanced_proficient_pct = mean(sci_advanced_proficient_pct, na.rm = T),
                 ap_score_3_5_pct = mean(ap_score_3_5_pct, na.rm = T)
             ) %>%
-            mutate(short_district = stringr::str_trunc(is_district, 20, "right"))
+            dplyr::mutate(short_district = stringr::str_trunc(is_district, 20, "right"))
         
     })
     
@@ -670,9 +734,9 @@ function(input, output, session) {
         district <- input$district
         
         school_info %>%
-            mutate(is_district = ifelse(district_name == district, district, "Others")) %>%
-            group_by(is_district) %>%
-            summarize(
+            dplyr::mutate(is_district = ifelse(district_name == district, district, "Others")) %>%
+            dplyr::group_by(is_district) %>%
+            dplyr::summarize(
                 cola_2015_16 = mean(cola_2015_16, na.rm = T),
                 cola_2016_17 = mean(cola_2016_17, na.rm = T),
                 cola_2017_18 = mean(cola_2017_18, na.rm = T),
@@ -714,7 +778,7 @@ function(input, output, session) {
     })
     
     # Total budget/expenditure plot
-    output$total_exp_plot <- renderPlotly({
+    output$total_exp_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -729,7 +793,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = plot_comp_df()$total_exp,
             y = plot_comp_df()$is_district,
@@ -739,21 +803,21 @@ function(input, output, session) {
             texttemplate = '$%{x:.2s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 350) %>%
-            layout(
+            plotly::layout(
                 barmode = "overlay",
                 title = "Total Budget",
                 yaxis = list(showticklabels = F),
                 showlegend = F
             ) %>%
             # This trace adds the salary outline to show the % of the budget going to teacher salaries
-            add_trace(x = plot_comp_df()$salary_total, name = "Salaries",
+            plotly::add_trace(x = plot_comp_df()$salary_total, name = "Salaries",
                       marker = list(color = 'transparent', line = list(color = 'black', width = 3)),
                       texttemplate = "", hovertemplate = paste0("Salaries<br>", round(plot_comp_df()$salary_total/plot_comp_df()$total_exp*100), "%<extra></extra>"))
         
     })
     
     # Per-pupil expenditure plot
-    output$per_pupil_exp_plot <- renderPlotly({
+    output$per_pupil_exp_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -768,7 +832,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             y = plot_comp_df()$total_exp_per_pupil,
             x = plot_comp_df()$is_district,
@@ -778,7 +842,7 @@ function(input, output, session) {
             texttemplate = '$%{y:.2s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 title = "Per-Pupil Expenditure",
                 xaxis = list(showticklabels = F),
                 showlegend = F
@@ -787,7 +851,7 @@ function(input, output, session) {
     })
     
     # Average teacher salary plot
-    output$average_salary_plot <- renderPlotly({
+    output$average_salary_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -802,7 +866,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             y = plot_comp_df()$average_salary,
             x = plot_comp_df()$is_district,
@@ -812,7 +876,7 @@ function(input, output, session) {
             texttemplate = '$%{y:.2s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 title = "Average Teacher Salary",
                 xaxis = list(showticklabels = F),
                 showlegend = F
@@ -821,7 +885,7 @@ function(input, output, session) {
     })
     
     # Total number of students plot
-    output$num_students_plot <- renderPlotly({
+    output$num_students_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -836,17 +900,17 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             y = plot_comp_df()$total_enrollment,
             x = plot_comp_df()$is_district,
             color = plot_comp_df()$is_district,
             type = "bar",
-            hovertemplate = paste(plot_comp_df()$is_district, "<br>", round((plot_comp_df() %>% pull(total_enrollment))), "<extra></extra>"),
+            hovertemplate = paste(plot_comp_df()$is_district, "<br>", round((plot_comp_df() %>% dplyr::pull(total_enrollment))), "<extra></extra>"),
             texttemplate = '%{y:.2s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 title = "Total Enrollment",
                 xaxis = list(showticklabels = F),
                 showlegend = F
@@ -855,7 +919,7 @@ function(input, output, session) {
     })
     
     # AP scores plot
-    output$ap_plot <- renderPlotly({
+    output$ap_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -870,7 +934,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             y = plot_comp_df()$ap_score_3_5_pct,
             x = plot_comp_df()$is_district,
@@ -880,7 +944,7 @@ function(input, output, session) {
             texttemplate = '%{y:.2s}%', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 title = "Advanced Placement",
                 xaxis = list(showticklabels = F),
                 yaxis = list(title = "% of Scores 3-5"),
@@ -890,7 +954,7 @@ function(input, output, session) {
     })
     
     # Total teachers plot
-    output$teacher_fte_plot <- renderPlotly({
+    output$teacher_fte_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -905,17 +969,17 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             y = plot_comp_df()$total_teachers,
             x = plot_comp_df()$is_district,
             color = plot_comp_df()$is_district,
             type = "bar",
-            hovertemplate = paste(plot_comp_df()$is_district, "<br>", round((plot_comp_df() %>% pull(total_teachers)),1), "<extra></extra>"),
+            hovertemplate = paste(plot_comp_df()$is_district, "<br>", round((plot_comp_df() %>% dplyr::pull(total_teachers)),1), "<extra></extra>"),
             texttemplate = '%{y:.3s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 title = "Total Teachers",
                 xaxis = list(showticklabels = F),
                 showlegend = F
@@ -924,7 +988,7 @@ function(input, output, session) {
     })
     
     # SAT scores plot
-    output$sat_plot <- renderPlotly({
+    output$sat_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -939,7 +1003,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = plot_comp_df()$sat_reading_writing,
             y = plot_comp_df()$sat_math,
@@ -950,16 +1014,16 @@ function(input, output, session) {
                 opacity = .75
             ),
             color = plot_comp_df()$short_district,
-            hovertemplate = paste((plot_comp_df() %>% pull(is_district)),
+            hovertemplate = paste((plot_comp_df() %>% dplyr::pull(is_district)),
                                   "<br>",
                                   "SAT Reading/Writing:",
-                                  (round(plot_comp_df() %>% pull(sat_reading_writing),1)),
+                                  (round(plot_comp_df() %>% dplyr::pull(sat_reading_writing),1)),
                                   "<br>",
                                   "SAT Math:",
-                                  (round(plot_comp_df() %>% pull(sat_math),1)),
+                                  (round(plot_comp_df() %>% dplyr::pull(sat_math),1)),
                                   "<extra></extra>"),
             height = 225) %>%
-            layout(yaxis = list(title = "Math",
+            plotly::layout(yaxis = list(title = "Math",
                                 range = list(0,800)),
                    xaxis = list(title = "Reading/Writing",
                                 range = list(0,800)),
@@ -968,16 +1032,16 @@ function(input, output, session) {
     })
     
     # MCAS scores plot
-    output$mcas_plot <- renderPlotly({
+    output$mcas_plot <- plotly::renderPlotly({
         
         ## Pivot data longer for grouped bars
         mcas_df <- plot_comp_df() %>%
-            select(is_district, ela_advanced_proficient_pct:sci_advanced_proficient_pct) %>%
-            pivot_longer(cols = ends_with("_advanced_proficient_pct"),
+            dplyr::select(is_district, ela_advanced_proficient_pct:sci_advanced_proficient_pct) %>%
+            tidyr::pivot_longer(cols = tidyr::ends_with("_advanced_proficient_pct"),
                          names_to = "test",
                          names_pattern = "(.*)_advanced_proficient_pct",
                          values_to = "score") %>%
-            mutate(test = case_when(
+            dplyr::mutate(test = dplyr::case_when(
                 test == "mth" ~ "Math",
                 test == "sci" ~ "Science",
                 test == "ela" ~ "ELA"
@@ -996,7 +1060,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             data = mcas_df,
             x = mcas_df$test,
@@ -1007,7 +1071,7 @@ function(input, output, session) {
             texttemplate = '%{y:.2s}%', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 yaxis = list(title = "% Advanced/Proficient"),
                 title = "10th Grade MCAS",
                 showlegend = F
@@ -1016,7 +1080,7 @@ function(input, output, session) {
     })
     
     # Student demographics plot
-    output$student_demo_plot <- renderPlotly({
+    output$student_demo_plot <- plotly::renderPlotly({
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -1032,7 +1096,7 @@ function(input, output, session) {
         }
         
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = plot_comp_df()$english_learner_pct,
             y = plot_comp_df()$low_income_pct,
@@ -1043,16 +1107,16 @@ function(input, output, session) {
                 opacity = .75
             ),
             color = plot_comp_df()$short_district,
-            hovertemplate = paste((plot_comp_df() %>% pull(is_district)),
+            hovertemplate = paste((plot_comp_df() %>% dplyr::pull(is_district)),
                                   "<br>",
                                   "English Learner:",
-                                  (round(plot_comp_df() %>% pull(english_learner_pct),1)),
+                                  (round(plot_comp_df() %>% dplyr::pull(english_learner_pct),1)),
                                   "%<br>",
                                   "Low-Income:",
-                                  (round(plot_comp_df() %>% pull(low_income_pct),1)),
+                                  (round(plot_comp_df() %>% dplyr::pull(low_income_pct),1)),
                                   "%<extra></extra>"),
             height = 225) %>%
-            layout(yaxis = list(title = "Low-Income %",
+            plotly::layout(yaxis = list(title = "Low-Income %",
                                 range = list(0,100)),
                    xaxis = list(title = "English Learner %",
                                 range = list(0,100)),
@@ -1061,21 +1125,21 @@ function(input, output, session) {
     })
     
     # Contract average salary plot
-    output$yearly_salary_plot <- renderPlotly({
+    output$yearly_salary_plot <- plotly::renderPlotly({
         
-        year_n <- str_replace(input$comp_year, "-", "_")
+        year_n <- stringr::str_replace(input$comp_year, "-", "_")
         first_year <- as.numeric(substring(input$comp_year, 1, 4)) + 2
         second_year <- as.numeric(substring(input$comp_year, 6, 8)) + 2
         year_n_2 <- paste0(first_year, "_", second_year)
         
         ## Pivot data longer for grouped bars
         salary_avg_df <- plot_contract_df() %>%
-            select(is_district, as.name(paste0("salary_avg_", year_n)):as.name(paste0("salary_avg_", year_n_2))) %>%
-            pivot_longer(cols = starts_with("salary_avg_"),
+            dplyr::select(is_district, as.name(paste0("salary_avg_", year_n)):as.name(paste0("salary_avg_", year_n_2))) %>%
+            tidyr::pivot_longer(cols = tidyr::starts_with("salary_avg_"),
                          names_to = "year",
                          names_prefix = "salary_avg_",
                          values_to = "salary") %>%
-            mutate(year = str_replace(year, "_", "-"))
+            dplyr::mutate(year = stringr::str_replace(year, "_", "-"))
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -1090,7 +1154,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = salary_avg_df$year,
             y = salary_avg_df$salary,
@@ -1100,7 +1164,7 @@ function(input, output, session) {
             hovertemplate = paste(salary_avg_df$is_district, "<br>$%{y:.3s}<extra></extra>"),
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 yaxis = list(title = "",
                              range = list(65000,80000)),
                 title = "Average Salary",
@@ -1110,21 +1174,21 @@ function(input, output, session) {
     })
     
     # COLA plot
-    output$cola_plot <- renderPlotly({
+    output$cola_plot <- plotly::renderPlotly({
         
-        year_n <- str_replace(input$comp_year, "-", "_")
+        year_n <- stringr::str_replace(input$comp_year, "-", "_")
         first_year <- as.numeric(substring(input$comp_year, 1, 4)) + 2
         second_year <- as.numeric(substring(input$comp_year, 6, 8)) + 2
         year_n_2 <- paste0(first_year, "_", second_year)
         
         ## Pivot longer for grouped bars
         cola_df <- plot_contract_df() %>%
-            select(is_district, as.name(paste0("cola_", year_n)):as.name(paste0("cola_", year_n_2))) %>%
-            pivot_longer(cols = starts_with("cola_"),
+            dplyr::select(is_district, as.name(paste0("cola_", year_n)):as.name(paste0("cola_", year_n_2))) %>%
+            tidyr::pivot_longer(cols = tidyr::starts_with("cola_"),
                          names_to = "year",
                          names_prefix = "cola_",
                          values_to = "cola") %>%
-            mutate(year = str_replace(year, "_", "-"))
+            dplyr::mutate(year = stringr::str_replace(year, "_", "-"))
         
         print(cola_df$is_district == "Others")
         
@@ -1141,7 +1205,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = cola_df$cola,
             y = cola_df$year,
@@ -1151,7 +1215,7 @@ function(input, output, session) {
             texttemplate = '%{x:.1%}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 yaxis = list(title = ""),
                 title = "COLA",
                 showlegend = F
@@ -1160,20 +1224,20 @@ function(input, output, session) {
     })
     
     # Upper-left salary plot
-    output$upper_left_salary_plot <- renderPlotly({
+    output$upper_left_salary_plot <- plotly::renderPlotly({
         
-        year_n <- str_replace(input$comp_year, "-", "_")
+        year_n <- stringr::str_replace(input$comp_year, "-", "_")
         first_year <- as.numeric(substring(input$comp_year, 1, 4)) + 2
         second_year <- as.numeric(substring(input$comp_year, 6, 8)) + 2
         year_n_2 <- paste0(first_year, "_", second_year)
         
         upper_left_df <- plot_contract_df() %>%
-            select(is_district, as.name(paste0("upper_left_", year_n)):as.name(paste0("upper_left_", year_n_2))) %>%
-            pivot_longer(cols = starts_with("upper_left_"),
+            dplyr::select(is_district, as.name(paste0("upper_left_", year_n)):as.name(paste0("upper_left_", year_n_2))) %>%
+            tidyr::pivot_longer(cols = tidyr::starts_with("upper_left_"),
                          names_to = "year",
                          names_prefix = "upper_left_",
                          values_to = "upper_left") %>%
-            mutate(year = str_replace(year, "_", "-"))
+            dplyr::mutate(year = stringr::str_replace(year, "_", "-"))
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -1188,7 +1252,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = upper_left_df$upper_left,
             y = upper_left_df$year,
@@ -1198,7 +1262,7 @@ function(input, output, session) {
             texttemplate = '$%{x:.2s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 yaxis = list(title = ""),
                 title = "Upper-Left Salary",
                 showlegend = F
@@ -1207,21 +1271,21 @@ function(input, output, session) {
     })
     
     # Lower-right salary plot
-    output$lower_right_salary_plot <- renderPlotly({
+    output$lower_right_salary_plot <- plotly::renderPlotly({
         
-        year_n <- str_replace(input$comp_year, "-", "_")
+        year_n <- stringr::str_replace(input$comp_year, "-", "_")
         first_year <- as.numeric(substring(input$comp_year, 1, 4)) + 2
         second_year <- as.numeric(substring(input$comp_year, 6, 8)) + 2
         year_n_2 <- paste0(first_year, "_", second_year)
         
         ## Pivot longer for grouped bars
         lower_right_df <- plot_contract_df() %>%
-            select(is_district, as.name(paste0("lower_right_", year_n)):as.name(paste0("lower_right_", year_n_2))) %>%
-            pivot_longer(cols = starts_with("lower_right_"),
+            dplyr::select(is_district, as.name(paste0("lower_right_", year_n)):as.name(paste0("lower_right_", year_n_2))) %>%
+            tidyr::pivot_longer(cols = tidyr::starts_with("lower_right_"),
                          names_to = "year",
                          names_prefix = "lower_right_",
                          values_to = "lower_right") %>%
-            mutate(year = str_replace(year, "_", "-"))
+            dplyr::mutate(year = stringr::str_replace(year, "_", "-"))
         
         ## Manually set color scale depending on whether the district, the average of the comparison
         ## districts, or both have complete data (doing this makes district always gold and comp districts
@@ -1236,7 +1300,7 @@ function(input, output, session) {
             palette <- c("#2A3A6E")
         }
         
-        userplot <- plot_ly(
+        userplot <- plotly::plot_ly(
             colors = palette,
             x = lower_right_df$lower_right,
             y = lower_right_df$year,
@@ -1246,7 +1310,7 @@ function(input, output, session) {
             texttemplate = '$%{x:.3s}', textposition = 'inside',
             textfont = list(color = "white", size = 18),
             height = 225) %>%
-            layout(
+            plotly::layout(
                 yaxis = list(title = ""),
                 title = "Lower-Right Salary",
                 showlegend = F
@@ -1254,38 +1318,35 @@ function(input, output, session) {
         
     })
     
-    ### OVERVIEW TAB
+
+# Overview ----------------------------------------------------------------
     
     # Create data frame with comparison of district and comparison districts
     # NOTE: User can choose to see individual comp districts or aggregated
     # comp districts using the input$individuals parameter (used in if statements below)
     comp_df <- reactive({
         
-        district <- input$district
-        comp_districts <- input$comp_districts
-        comp_year <- input$comp_year
-        
         # If comp districts are grouped...
         if (input$individuals == "No"){
             
             # Create data frame of comparison districts and rename columns
             comp_df <- school_info %>%
-                filter(district_name %in% comp_districts,
-                       year == comp_year) %>%
-                select(total_enrollment:total_exp_per_pupil) %>%
+                dplyr::filter(district_name %in% comp_districts(),
+                       year == comp_year()) %>%
+                dplyr::select(total_enrollment:total_exp_per_pupil) %>%
                 magrittr::set_colnames(overview_statistics) %>%
                 as.data.frame()
             
-            # Create data frame of user's district and rename columns
+            # Create data frame of user's district() and rename columns
             district_df <- school_info %>%
-                filter(district_name == district,
-                       year == comp_year) %>%
-                select(total_enrollment:total_exp_per_pupil) %>%
+                dplyr::filter(district_name == district(),
+                       year == comp_year()) %>%
+                dplyr::select(total_enrollment:total_exp_per_pupil) %>%
                 magrittr::set_colnames(overview_statistics) %>%
                 as.data.frame()
             
             # Iterate thru columns and for each, create a row with the average of
-            # comp districts, value for the user's district, and % difference between
+            # comp districts, value for the user's district(), and % difference between
             # the two - as I said on our call, there's probably a vectorized way to
             # do this, but I never had time to make more efficient
             for (i in 1:ncol(comp_df)){
@@ -1339,16 +1400,16 @@ function(input, output, session) {
         # If comp districts are not grouped...
         else{
             
-            # Create data frame with only user's district and chosen comp districts
+            # Create data frame with only user's district() and chosen comp districts
             comp_df <- school_info %>%
-                filter(district_name %in% comp_districts | district_name == district,
-                       year == comp_year)
+                dplyr::filter(district_name %in% comp_districts() | district_name == district(),
+                       year == comp_year())
             
             district_names <- comp_df$district_name
             new_df_names <- c()
             
-            # Create names for new data frame with '{district name}' and '{district name} Diff'
-            # to record both value and % difference from user's district
+            # Create names for new data frame with '{district() name}' and '{district() name} Diff'
+            # to record both value and % difference from user's district()
             for (i in 1:nrow(comp_df)){
                 new_df_names <- append(new_df_names, comp_df$district_name[i])
                 new_df_names <- append(new_df_names, paste0(comp_df$district_name[i], " Diff"))
@@ -1356,29 +1417,29 @@ function(input, output, session) {
             
             # Transpose comparison df so columns are the districts and rows are the statistics of interest
             comp_df <- comp_df %>%
-                select(total_enrollment:total_exp_per_pupil) %>%
+                dplyr::select(total_enrollment:total_exp_per_pupil) %>%
                 t() %>%
                 magrittr::set_colnames(district_names) %>%
                 magrittr::set_rownames(overview_statistics) %>%
                 as.data.frame()
             
-            # Create data frame to store comp district values and % differences
-            value_column <- as.vector(comp_df[district])
+            # Create data frame to store comp district() values and % differences
+            value_column <- as.vector(comp_df[district()])
             differences_df <- data.frame(value = c(overview_statistics),
                                          diff = c(value_column))
-            colnames(differences_df) <- c(district, paste0(district, " Diff"))
+            colnames(differences_df) <- c(district(), paste0(district(), " Diff"))
             
-            # Iterate thru districts and for each, create a column for the district
+            # Iterate thru districts and for each, create a column for the district()
             # values and % differences
             for (j in 1:ncol(comp_df)){
                 
                 current_district <- district_names[j]
                 current_df_names <- colnames(differences_df)
                 
-                if (current_district != district){
+                if (current_district != district()){
                     
                     value_column <- as.vector(comp_df[current_district])
-                    diff_column <- (value_column-comp_df[district])/comp_df[district]
+                    diff_column <- (value_column-comp_df[district()])/comp_df[district()]
                     
                     differences_df <- cbind(differences_df, value_column) %>%
                         cbind(diff_column)
@@ -1390,43 +1451,39 @@ function(input, output, session) {
             
         }
         
-        ## YOU NOW HAVE A DF WITH A COLUMN FOR EACH DISTRICT AND EACH DISTRICT % DIFF FROM USER'S DISTRICT
+        ## YOU NOW HAVE A DF WITH A COLUMN FOR EACH district() AND EACH district() % DIFF FROM USER'S district()
         differences_df
     })
     
     # Now use the data frame from above to generate a pretty {gt} table for comparisons
     comp_table <- reactive({
         
-        district <- input$district
-        comp_districts <- input$comp_districts
-        comp_year <- input$comp_year
-        
         # If comp districts are grouped...
         if (input$individuals == "No"){
             
-            len_comps <- length(comp_districts)
+            len_comps <- length(comp_districts())
             
             # Create list of comp districts for table source note
             # NOTE: There might be a better way to do this
             for (i in 1:len_comps){
                 if (i == 1){
-                    comp_list <- comp_districts[i]
+                    comp_list <- comp_districts()[i]
                 }
                 else{
-                    comp_list <- paste0(comp_list, ", ", comp_districts[i])
+                    comp_list <- paste0(comp_list, ", ", comp_districts()[i])
                 }
             }
             
             # Build {gt} table
             comp_df() %>%
-                mutate(
+                dplyr::mutate(
                     # Replace NaNs with NAs (this was causing problems earlier)
                     value = ifelse(is.nan(value), NA_real_, as.numeric(value)),
                     mean = ifelse(is.nan(mean), NA_real_, as.numeric(mean)),
                     diff = ifelse(is.nan(diff), NA_real_, as.numeric(diff))
                 ) %>%
                 # Arrange in order of columns so we can do row groupings later
-                arrange(match(column,
+                dplyr::arrange(match(column,
                               c("Total Expenditure",
                                 "Total Expenditure per Pupil",
                                 "In-District Expenditure",
@@ -1447,24 +1504,24 @@ function(input, output, session) {
                                 "% Teachers w/o Waiver",
                                 "% Teachers Teaching in Field",
                                 "% Core Classes Taught by Exp Teachers")),
-                        desc(column)) %>%
-                gt() %>%
-                cols_label(
+                        dplyr::desc(column)) %>%
+                gt::gt() %>%
+                gt::cols_label(
                     column = "",
                     value = "Your District",
                     mean = "Avg of Comparison Districts",
                     diff = "Difference",
                     pct_diff = "% Difference"
                 ) %>%
-                cols_align("center", columns = 2:5) %>%
-                fmt_number(columns = 2:4, rows = c(8,12), decimals = 0) %>%
-                fmt_number(columns = 2:4, rows = c(5,9:11), decimals = 1) %>%
-                fmt_currency(columns = 2:4, rows = c(1:4,6:7), decimals = 0) %>%
-                fmt_percent(columns = 2:4, rows = c(13:17), decimals = 1) %>%
-                fmt_percent(columns = 5, decimals = 1) %>%
+                gt::cols_align("center", columns = 2:5) %>%
+                gt::fmt_number(columns = 2:4, rows = c(8,12), decimals = 0) %>%
+                gt::fmt_number(columns = 2:4, rows = c(5,9:11), decimals = 1) %>%
+                gt::fmt_currency(columns = 2:4, rows = c(1:4,6:7), decimals = 0) %>%
+                gt::fmt_percent(columns = 2:4, rows = c(13:17), decimals = 1) %>%
+                gt::fmt_percent(columns = 5, decimals = 1) %>%
                 # Color palette is such that anything 1-100% is lighter hue; anything
                 # greater in magnitude is dark
-                data_color(
+                gt::data_color(
                     columns = 5, 
                     colors =
                         scales::col_bin(
@@ -1476,33 +1533,33 @@ function(input, output, session) {
                             na.color = "white"
                         )
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Teacher Stats",
                     rows = c(12:17)
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Enrollment",
                     rows = c(8:11)
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Teacher Salaries",
                     rows = c(5:7)
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Expenditure",
                     rows = c(1:4)
                 ) %>%
                 gt_theme_538() %>%
-                tab_source_note(
+                gt::tab_source_note(
                     source_note = "Note: Only enrollment data available for 2021/22;
                                     Teacher salaries available beginning in 2019/20;
-                                    Teacher stats vary in availability by year/district") %>%
-                tab_header(
-                    title = paste0(district, " vs. Comparison Districts"),
-                    subtitle = paste0("Stats for ", comp_year, "; See footnote for data availability details")
+                                    Teacher stats vary in availability by year/district()") %>%
+                gt::tab_header(
+                    title = paste0(district(), " vs. Comparison Districts"),
+                    subtitle = paste0("Stats for ", comp_year(), "; See footnote for data availability details")
                 ) %>%
-                tab_footnote(footnote="Dark red = ≤ -100%; Dark green = ≥ 100%", locations=cells_column_labels(columns=5)) %>%
-                tab_footnote(comp_list, locations=cells_column_labels(columns=3))
+                gt::tab_footnote(footnote="Dark red = ≤ -100%; Dark green = ≥ 100%", locations=gt::cells_column_labels(columns=5)) %>%
+                gt::tab_footnote(comp_list, locations=gt::cells_column_labels(columns=3))
         }
         
         # If comp districts aren't grouped...
@@ -1530,23 +1587,23 @@ function(input, output, session) {
             # Easier to refer to index with dynamic user input
             col_indexes <- c(seq(ncol(comp_df())))
             
-            # Comparison districts WITHOUT the district itself
+            # Comparison districts WITHOUT the district() itself
             comp_districts_adjusted <- c()
             
             if (ncol(comp_df()) > 2){
-                for (i in 1:length(comp_districts)){
-                    if (comp_districts[i] != district & comp_districts[i] %in% colnames(comp_df())){
-                        comp_districts_adjusted <- append(comp_districts_adjusted, comp_districts[i])
+                for (i in 1:length(comp_districts())){
+                    if (comp_districts()[i] != district() & comp_districts()[i] %in% colnames(comp_df())){
+                        comp_districts_adjusted <- append(comp_districts_adjusted, comp_districts()[i])
                     }
                 }
             }
             
             # Column labels
             # NOTE: First two columns are the names of the statistics and the 
-            # values for the district itself, so we set those right off the bat
-            col_labs <- c("",district)
+            # values for the district() itself, so we set those right off the bat
+            col_labs <- c("",district())
             
-            # Again, we use the convention of '{district name}' and '{district name} % Diff'
+            # Again, we use the convention of '{district() name}' and '{district() name} % Diff'
             if (length(comp_districts_adjusted) > 0){
                 for (i in 1:length(comp_districts_adjusted)){
                     col_labs <- append(col_labs, c(comp_districts_adjusted[i], "% Diff"))
@@ -1554,12 +1611,12 @@ function(input, output, session) {
             }
             
             # Finally, create named vector where column indexes correspond to names from above
-            col_labs <- set_names(col_labs, col_indexes)
+            col_labs <- purrr::set_names(col_labs, col_indexes)
             
             # Build {gt} table
             comp_df() %>%
                 # Arrange in order of columns so we can do row groupings later
-                arrange(match(get(district),
+                dplyr::arrange(match(get(district()),
                               c("Total Expenditure",
                                 "Total Expenditure per Pupil",
                                 "In-District Expenditure",
@@ -1580,37 +1637,37 @@ function(input, output, session) {
                                 "% Teachers w/o Waiver",
                                 "% Teachers Teaching in Field",
                                 "% Core Classes Taught by Exp Teachers")),
-                        desc(get(district))) %>%
+                        dplyr::desc(get(district()))) %>%
                 # Set column names to indexes
                 magrittr::set_colnames(col_indexes) %>%
-                gt() %>%
+                gt::gt() %>%
                 # Set column labels
-                cols_label(.list = col_labs) %>%
+                gt::cols_label(.list = col_labs) %>%
                 gt_theme_538() %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Teacher Stats",
                     rows = c(12:17)
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Enrollment",
                     rows = c(8:11)
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Teacher Salaries",
                     rows = c(5:7)
                 ) %>%
-                tab_row_group(
+                gt::tab_row_group(
                     label = "Expenditure",
                     rows = c(1:4)
                 ) %>%
-                fmt_number(columns = value_cols, rows = c(8,12), decimals = 0) %>%
-                fmt_number(columns = value_cols, rows = c(5,9:11), decimals = 1) %>%
-                fmt_currency(columns = value_cols, rows = c(1:4,6:7), decimals = 0) %>%
-                fmt_percent(columns = value_cols, rows = c(13:17), decimals = 1) %>%
-                fmt_percent(columns = pct_cols, decimals = 1) %>%
+                gt::fmt_number(columns = value_cols, rows = c(8,12), decimals = 0) %>%
+                gt::fmt_number(columns = value_cols, rows = c(5,9:11), decimals = 1) %>%
+                gt::fmt_currency(columns = value_cols, rows = c(1:4,6:7), decimals = 0) %>%
+                gt::fmt_percent(columns = value_cols, rows = c(13:17), decimals = 1) %>%
+                gt::fmt_percent(columns = pct_cols, decimals = 1) %>%
                 # Color palette is such that anything 1-100% is lighter hue; anything
                 # greater in magnitude is dark
-                data_color(
+                gt::data_color(
                     columns = pct_cols, 
                     colors =
                         scales::col_bin(
@@ -1622,68 +1679,68 @@ function(input, output, session) {
                             na.color = "white"
                         )
                 ) %>%
-                cols_align("center", columns = 2:max(col_indexes)) %>%
-                tab_style(
+                gt::cols_align("center", columns = 2:max(col_indexes)) %>%
+                gt::tab_style(
                     style = list(
-                        cell_borders(
+                        gt::cell_borders(
                             sides = c("left"),
                             color = "black",
-                            weight = px(2)
+                            weight = gt::px(2)
                         ),
-                        cell_borders(
+                        gt::cell_borders(
                             sides = c("left"),
                             color = "black",
-                            weight = px(2)
+                            weight = gt::px(2)
                         )
                     ),
                     locations = list(
-                        cells_body(
+                        gt::cells_body(
                             columns = value_cols
                         ),
-                        cells_column_labels(
+                        gt::cells_column_labels(
                             columns = value_cols
                         )
                     )
                 ) %>%
-                tab_source_note(
+                gt::tab_source_note(
                     source_note = "Note: Only enrollment data available for 2021/22;
                                     Teacher salaries available beginning in 2019/20;
-                                    Teacher stats vary in availability by year/district") %>%
-                tab_footnote(footnote="Dark red = ≤ -100%; Dark green = ≥ 100%", locations=cells_column_labels(columns=pct_cols)) %>%
-                tab_header(
-                    title = paste0(district, " vs. Comparison Districts"),
-                    subtitle = paste0("Stats for ", comp_year, "; See footnote for data availability details")
+                                    Teacher stats vary in availability by year/district()") %>%
+                gt::tab_footnote(footnote="Dark red = ≤ -100%; Dark green = ≥ 100%", locations=gt::cells_column_labels(columns=pct_cols)) %>%
+                gt::tab_header(
+                    title = paste0(district(), " vs. Comparison Districts"),
+                    subtitle = paste0("Stats for ", comp_year(), "; See footnote for data availability details")
                 ) %>%
                 # Hacky way to ensure that all '% Diff' columns are the same size no matter how
                 # many comp districts the user enters
-                cols_width(`1` ~ px(275),
-                           ends_with("12") ~ px(75),
-                           ends_with("22") ~ px(75),
-                           ends_with("32") ~ px(75),
-                           ends_with("42") ~ px(75),
-                           ends_with("52") ~ px(75),
-                           ends_with("62") ~ px(75),
-                           ends_with("72") ~ px(75),
-                           ends_with("82") ~ px(75),
-                           ends_with("92") ~ px(75),
-                           ends_with("02") ~ px(75),
-                           ends_with("4") ~ px(75),
-                           ends_with("6") ~ px(75),
-                           ends_with("8") ~ px(75),
-                           ends_with("0") ~ px(75),
-                           everything() ~ px(150)) %>%
-                tab_options(table.font.size = 14)
+                gt::cols_width(`1` ~ gt::px(275),
+                           gt::ends_with("12") ~ gt::px(75),
+                           gt::ends_with("22") ~ gt::px(75),
+                           gt::ends_with("32") ~ gt::px(75),
+                           gt::ends_with("42") ~ gt::px(75),
+                           gt::ends_with("52") ~ gt::px(75),
+                           gt::ends_with("62") ~ gt::px(75),
+                           gt::ends_with("72") ~ gt::px(75),
+                           gt::ends_with("82") ~ gt::px(75),
+                           gt::ends_with("92") ~ gt::px(75),
+                           gt::ends_with("02") ~ gt::px(75),
+                           gt::ends_with("4") ~ gt::px(75),
+                           gt::ends_with("6") ~ gt::px(75),
+                           gt::ends_with("8") ~ gt::px(75),
+                           gt::ends_with("0") ~ gt::px(75),
+                           gt::everything() ~ gt::px(150)) %>%
+                gt::tab_options(table.font.size = 14)
         }
     })
     
     # Actually render the {gt} table (need {gt} object to save in next function)
-    output$comparisons_table <- render_gt({comp_table()})
+    output$comparisons_table <- gt::render_gt({comp_table()})
     
     # Allow table download as png
     output$download_table <- downloadHandler(
         filename = "district_comparison.png",
         content = function(file) {
-            gtsave(comp_table(), file)
+            gt::gtsave(comp_table(), file)
         }
     )
     
@@ -1691,11 +1748,14 @@ function(input, output, session) {
     output$download_csv <- downloadHandler(
         filename = "district_comparison.csv",
         content = function(file) {
-            write.csv(comp_df(), file)
+            utils::write.csv(comp_df(), file)
         }
     )
     
-    ### PLOTS TAB
+
+# Plots -------------------------------------------------------------------
+
+
     
     # Observe X-axis category selected and populate dropdown
     observeEvent(input$x_cat, {
@@ -1756,34 +1816,30 @@ function(input, output, session) {
         
     })
     
+    y <- reactive(input$y)
+    
     # Put data in df to build plots
     plotdata <- reactive({
         
-        district <- input$district
-        comp_districts <- input$comp_districts
-        comp_year <- input$comp_year
-        y <- input$y
-        
         plot_data <- school_info %>%
-            filter(district_name %in% comp_districts | district_name == district,
-                   year == comp_year, !is.na(get(y))) %>%
-            mutate(is_district = ifelse(district_name == district, district, "Others"),
+            dplyr::filter(district_name %in% comp_districts() | district_name == district(),
+                   year == comp_year(), !is.na(get(y()))) %>%
+            dplyr::mutate(is_district = ifelse(district_name == district(), district(), "Others"),
                    short_district = stringr::str_trunc(district_name, 20, "right"))
         
     })
     
     # Build plots
     # NOTE: User can select bar, scatter, or pie
-    output$userplot <- renderPlotly({
+    output$userplot <- plotly::renderPlotly({
         
-        district <- input$district
         
         if (input$plot_type == "Scatter"){
             
-            x <- plotdata() %>% pull(input$x)
-            y <- plotdata() %>% pull(input$y)
+            x <- plotdata() %>% dplyr::pull(input$x)
+            y <- plotdata() %>% dplyr::pull(input$y)
 
-            userplot <- plot_ly(
+            userplot <- plotly::plot_ly(
                 x = x,
                 y = y,
                 type = "scatter",
@@ -1793,18 +1849,18 @@ function(input, output, session) {
                     opacity = .5
                 ),
                 color = plotdata()$short_district,
-                hovertemplate = paste((plotdata() %>% pull(district_name)),
+                hovertemplate = paste((plotdata() %>% dplyr::pull(district_name)),
                                       "<br>",
                                       names(axis_options)[axis_options == input$x], ":",
-                                      (plotdata() %>% pull(input$x)),
+                                      (plotdata() %>% dplyr::pull(input$x)),
                                       "<br>",
                                       names(axis_options)[axis_options == input$y], ":",
-                                      (plotdata() %>% pull(input$y)),
+                                      (plotdata() %>% dplyr::pull(input$y)),
                                       "<extra></extra>"),
                 height = 750) %>%
-                layout(yaxis = list(title = names(axis_options)[axis_options == input$y]),
+                plotly::layout(yaxis = list(title = names(axis_options)[axis_options == input$y]),
                        xaxis = list(title = names(axis_options)[axis_options == input$x]),
-                       title = paste(district, "vs. Comparison Districts",
+                       title = paste(district(), "vs. Comparison Districts",
                                      "<br><sup>", names(axis_options)[axis_options == input$y],
                                      "vs.", names(axis_options)[axis_options == input$x], input$comp_year, "</sup>"),
                        images = list(
@@ -1817,21 +1873,21 @@ function(input, output, session) {
         
         else if (input$plot_type == "Pie"){
             
-            y <- plotdata() %>% pull(input$y)
-            x <- factor(plotdata() %>% pull(district_name), levels = unique(plotdata() %>% pull(district_name))[order(plotdata() %>% pull(input$y))])
+            y <- plotdata() %>% dplyr::pull(input$y)
+            x <- factor(plotdata() %>% dplyr::pull(district_name), levels = unique(plotdata() %>% dplyr::pull(district_name))[order(plotdata() %>% dplyr::pull(input$y))])
             y_mean <- mean(y, na.rm = T)
             
-            userplot <- plot_ly(
+            userplot <- plotly::plot_ly(
                 labels = x,
                 values = y,
                 type = "pie",
                 # color = plotdata()$short_district,
-                hovertemplate = paste((plotdata() %>% pull(district_name)),
+                hovertemplate = paste((plotdata() %>% dplyr::pull(district_name)),
                                       "<br>",
                                       names(axis_options)[axis_options == input$y], ":",
                                       y, "<extra></extra>"),
                 height = 750) %>%
-                layout(title = paste(district, "vs. Comparison Districts",
+                plotly::layout(title = paste(district(), "vs. Comparison Districts",
                                      "<br><sup>", names(axis_options)[axis_options == input$y], input$comp_year, "</sup>"),
                        legend = list(font = list(size = 11)),
                        images = list(
@@ -1844,25 +1900,25 @@ function(input, output, session) {
         
         else{
             
-            y <- plotdata() %>% pull(input$y)
-            x <- factor(plotdata() %>% pull(district_name), levels = unique(plotdata() %>% pull(district_name))[order(plotdata() %>% pull(input$y))])
-            district_short <- factor(plotdata() %>% pull(short_district), levels = unique(plotdata() %>% pull(short_district))[order(plotdata() %>% pull(input$y))])
+            y <- plotdata() %>% dplyr::pull(input$y)
+            x <- factor(plotdata() %>% dplyr::pull(district_name), levels = unique(plotdata() %>% dplyr::pull(district_name))[order(plotdata() %>% dplyr::pull(input$y))])
+            district_short <- factor(plotdata() %>% dplyr::pull(short_district), levels = unique(plotdata() %>% dplyr::pull(short_district))[order(plotdata() %>% dplyr::pull(input$y))])
             y_mean <- mean(y, na.rm = T)
             
-            userplot <- plot_ly(
+            userplot <- plotly::plot_ly(
                 x = x,
                 y = y,
                 type = "bar",
                 color = district_short,
-                hovertemplate = paste((plotdata() %>% pull(district_name)),
+                hovertemplate = paste((plotdata() %>% dplyr::pull(district_name)),
                                       "<br>",
                                       names(axis_options)[axis_options == input$y], ":",
                                       y, "<extra></extra>"),
                 texttemplate = '%{y:.2s}', textposition = 'outside',
                 height = 750) %>%
-                layout(xaxis = list(title = "District", showticklabels = F),
+                plotly::layout(xaxis = list(title = "District", showticklabels = F),
                        yaxis = list(title = names(axis_options)[axis_options == input$y]),
-                       title = paste(district, "vs. Comparison Districts",
+                       title = paste(district(), "vs. Comparison Districts",
                                      "<br><sup>", names(axis_options)[axis_options == input$y], input$comp_year, "</sup>"),
                        legend = list(font = list(size = 11)),
                        annotations = list(
@@ -1913,5 +1969,429 @@ function(input, output, session) {
              contentType = 'image/png',
              alt = "")
     }, deleteFile = FALSE)
+    
+
+# Students ----------------------------------------------------------------
+
+    student_comp <- reactive({
+        school_info %>%
+            dplyr::filter(district_name %in% comp_districts(),
+                          year == comp_year()) %>%
+            dplyr::select(grade_pk:grade_12) %>%
+            # magrittr::set_colnames(overview_statistics) %>%
+            as.data.frame() %>% 
+            dplyr::summarise(
+                dplyr::across(
+                    grade_pk:grade_12,
+                    ~ mean(.x, na.rm = TRUE)
+                )
+            )
+            
+    })            
+    
+    
+    student_district <- reactive({
+        school_info %>%
+            dplyr::filter(district_name == district(),
+                          year == comp_year()) %>%
+            dplyr::select(grade_pk:grade_12) %>%
+            # magrittr::set_colnames(overview_statistics) %>%
+            as.data.frame()
+    })
+    
+    general_data <- reactive({
+        dplyr::bind_rows(student_comp(), student_district()) %>% 
+            t() %>% 
+            data.frame() %>% 
+            rename(other = X1,
+                   district  = X2)
+    })
+    
+    
+    output$student_general <-  plotly::renderPlotly(
+        plotly::plot_ly(
+        general_data(),
+        x = ~ c('PK', 'K', purrr::map_chr(seq(12), function(x){paste('Grade', x)})), #cleaner name),
+        y = ~ district,
+        type = 'bar',
+        name = district(),
+        marker = list(color = '#DB9743'),
+        hovertemplate = paste(district()  , ': %{y}<extra></extra>'),
+        texttemplate = '%{y}',
+        textposition = 'outside'
+      ) %>%
+        plotly::add_trace(y = ~ other,
+                  name = 'Other',
+                   hovertemplate = 'Other: %{y:,.1f}<extra></extra>',
+                   texttemplate = '%{y:,.0f}',
+                  marker = list(color = '#2a3a6e')) %>%
+        plotly::layout(
+          xaxis = list(title = "", tickangle = -45, fixedrange = T, categoryorder = "array", categoryarray = c('PK', 'K', purrr::map_chr(seq(12), function(x){paste('Grade', x)}))),
+          yaxis = list(title = "", fixedrange = T,automargin = T, range = c(0, max(general_data())*1.15)),
+          barmode = 'group',
+          showlegend =F,
+          font = list(size = 18),
+          images = list(
+            source = "https://raw.githubusercontent.com/SCasanova/arxed_ddd/main/www/D3%20Logo.png",
+            x = 0.02, y = 1.1,
+            sizex = 0.2, sizey = 0.2
+        )
+        )
+    )
+
+    needs_comp <- reactive({
+        student_needs %>%
+            dplyr::filter(district_name %in% comp_districts(),
+                          year == comp_year()) %>%
+            dplyr::select(economically_disadvantaged_percent,english_language_learner_percent,students_with_disabilities_percent ) %>%
+            as.data.frame() %>%
+            dplyr::summarise(
+                dplyr::across(
+                    (economically_disadvantaged_percent:students_with_disabilities_percent),
+                    ~ mean(.x, na.rm = TRUE)
+                )
+            )
+
+    })
+
+
+    needs_district <- reactive({
+        student_needs %>%
+            dplyr::filter(district_name == district(),
+                          year == comp_year()) %>%
+            dplyr::select(economically_disadvantaged_percent,english_language_learner_percent,students_with_disabilities_percent ) %>%
+            as.data.frame()
+    })
+
+    needs_data <- reactive({
+        req(comp_districts())
+        dplyr::bind_rows(needs_comp(), needs_district()) %>%
+            t() %>%
+            data.frame() %>% 
+            rename(other = X1,
+                   district = X2)
+    })
+    
+
+
+    output$student_needs <-  plotly::renderPlotly(
+        plotly::plot_ly(
+        needs_data(),
+        x = ~c('% Economicaly Disadvantaged', '% English Language Learners', '% Special Education'),
+        y = ~ district,
+        type = 'bar',
+        name = district(),
+        marker = list(color = '#DB9743'),
+        hovertemplate = paste(district()  , ': %{y}%<extra></extra>'),
+        texttemplate = '%{y}%',
+        textposition = 'auto'
+      ) %>%
+        plotly::add_trace(y = ~ other,
+                  name = 'Other',
+                   hovertemplate = 'Other: %{y:,.1f}%<extra></extra>',
+                   texttemplate = '%{y:,.1f}%',
+                  marker = list(color = '#2a3a6e')) %>%
+        plotly::layout(
+          xaxis = list(title = "", fixedrange = T, categoryorder = "array", categoryarray = c('PK', 'K', purrr::map_chr(seq(12), function(x){paste('Grade', x)}))),
+          yaxis = list(title = "", fixedrange = T,automargin = T),
+          barmode = 'group',
+          showlegend =F,
+          font = list(size = 18)
+        )
+    )
+    
+    diversity_comp <- reactive({
+        student_diversity %>%
+            dplyr::filter(district_name %in% comp_districts(),
+                          year == comp_year()) %>%
+            dplyr::select(african_american_percent:multi_race_non_hispanic_percent) %>%
+            as.data.frame() %>%
+            dplyr::summarise(
+                dplyr::across(
+                    (african_american_percent:multi_race_non_hispanic_percent),
+                    ~ mean(.x, na.rm = TRUE)
+                )
+            )
+
+    })
+
+
+    diversity_district <- reactive({
+        student_diversity %>%
+            dplyr::filter(district_name == district(),
+                          year == comp_year()) %>%
+            dplyr::select(african_american_percent:multi_race_non_hispanic_percent) %>%
+            as.data.frame()
+    })
+
+    diversity_data <- reactive({
+        req(comp_districts())
+        dplyr::bind_rows(diversity_comp(), diversity_district()) %>%
+            t() %>%
+            data.frame() %>% 
+            dplyr::rename(other = X1,
+                   district = X2)
+    })
+    
+    output$student_diversity <-  plotly::renderPlotly(
+        plotly::plot_ly(
+        diversity_data(),
+        x = ~ c('African American', 'Asian', 'Hispanic', 'White', 'Native American', 'Hawaiian/Pacific Islander', 'Multi-Race'),
+        y = ~ district,
+        type = 'bar',
+        name = district(),
+        marker = list(color = '#DB9743'),
+        hovertemplate = paste(district()  , ': %{y}%<extra></extra>'),
+        texttemplate = '%{y}%',
+        textposition = 'outside'
+      ) %>%
+        plotly::add_trace(y = ~ other,
+                  name = 'Other',
+                   hovertemplate = 'Other: %{y:,.1f}%<extra></extra>',
+                   texttemplate = '%{y:,.1f}%',
+                  marker = list(color = '#2a3a6e')) %>%
+        plotly::layout(
+          xaxis = list(title = "", tickangle = -25, fixedrange = T, categoryorder = "array", categoryarray = c('PK', 'K', purrr::map_chr(seq(12), function(x){paste('Grade', x)}))),
+          yaxis = list(title = "", fixedrange = T,automargin = T,range = c(0, max(diversity_data())*1.15)),
+          barmode = 'group',
+          showlegend =F,
+          font = list(size = 18),
+          images = list(
+            source = "https://raw.githubusercontent.com/SCasanova/arxed_ddd/main/www/D3%20Logo.png",
+            x = 0.02, y = 1.1,
+            sizex = 0.2, sizey = 0.2
+        )
+        )
+    )
+    
+    pie_data <- reactive(diversity_district() %>% t() %>% data.frame() %>% 
+                            janitor::clean_names())
+    
+    observe(print(pie_data()))
+    
+    output$student_diversity_pie <- plotly::renderPlotly(
+        plotly::plot_ly(
+            pie_data(),
+            labels = ~ c('African American', 'Asian', 'Hispanic', 'White', 'Native American', 'Hawaiian/Pacific Islander', 'Multi-Race'),
+            textposition = 'inside',
+            textinfo = 'label+percent',
+            insidetextfont = list(color = '#FFFFFF'),
+            values = ~x,
+            hoverinfo = 'label+percent',
+            text = ~paste0(x, '%'),
+             marker = list(colors = c('#DB9743', '#3F7CAC', '#2E282A', '#2a3a6e', '#F3EFF5', '#C03221', '#7DAA92'),
+                      line = list(color = '#FFFFFF', width = 1))
+            )%>%
+            add_pie(hole = 0.6)%>%
+            layout(
+                showlegend = F,
+                xaxis = list(
+                    showgrid = FALSE,
+                    zeroline = FALSE,
+                    showticklabels = FALSE
+                ),
+                yaxis = list(
+                    showgrid = FALSE,
+                    zeroline = FALSE,
+                    showticklabels = FALSE
+                ),
+                images = list(
+                    source = "https://raw.githubusercontent.com/SCasanova/arxed_ddd/main/www/D3%20Logo.png",
+                    x = 0.02,
+                    y = 1.15,
+                    sizex = 0.2,
+                    sizey = 0.2
+                )
+            )
+    )
+    
+    mobility_comp <- reactive({
+        student_mobility %>%
+            dplyr::filter(district_name %in% comp_districts(),
+                          year == comp_year()) %>%
+            dplyr::select(percent_churn, percent_intake, percent_stability) %>%
+            as.data.frame() %>%
+            dplyr::summarise(
+                dplyr::across(
+                    c(percent_churn, percent_intake, percent_stability),
+                    ~ mean(.x, na.rm = TRUE)
+                )
+            )
+
+    })
+
+
+    mobility_district <- reactive({
+        student_mobility %>%
+            dplyr::filter(district_name == district(),
+                          year == comp_year()) %>%
+            dplyr::select(percent_churn, percent_intake, percent_stability) %>%
+            as.data.frame()
+    })
+
+    mobility_data <- reactive({
+        req(comp_districts())
+        dplyr::bind_rows(mobility_comp(), mobility_district()) %>%
+            t() %>%
+            data.frame() %>% 
+            dplyr::rename(other = X1,
+                   district = X2)
+    })
+    
+    output$student_mobility <-  plotly::renderPlotly(
+        plotly::plot_ly(
+        mobility_data(),
+        x = ~ c('Churn %', 'Intake %', 'Stability %'),
+        y = ~ district,
+        type = 'bar',
+        name = district(),
+        marker = list(color = '#DB9743'),
+        hovertemplate = paste(district()  , ': %{y}%<extra></extra>'),
+        texttemplate = '%{y}%',
+        textposition = 'auto'
+      ) %>%
+        plotly::add_trace(y = ~ other,
+                  name = 'Other',
+                   hovertemplate = 'Other: %{y:,.1f}%<extra></extra>',
+                   texttemplate = '%{y:,.1f}%',
+                  marker = list(color = '#2a3a6e')) %>%
+        plotly::layout(
+          xaxis = list(title = "", fixedrange = T, categoryorder = "array", categoryarray = c('PK', 'K', purrr::map_chr(seq(12), function(x){paste('Grade', x)}))),
+          yaxis = list(title = "", fixedrange = T,automargin = T),
+          barmode = 'group',
+          showlegend =F,
+          font = list(size = 18),
+          images = list(
+            source = "https://raw.githubusercontent.com/SCasanova/arxed_ddd/main/www/D3%20Logo.png",
+            x = 0.02, y = 1.1,
+            sizex = 0.2, sizey = 0.2
+        )
+        )
+    )
+
+# Staff Tab ---------------------------------------------------------------
+
+    staff_gen_comp <- reactive({
+        school_info %>%
+            dplyr::filter(district_name %in% comp_districts(),
+                          year == comp_year()) %>%
+            dplyr::select(total_in_district_fte) %>%
+            as.data.frame() %>%
+            dplyr::summarise(
+                dplyr::across(
+                    c(total_in_district_fte),
+                    ~ mean(.x, na.rm = TRUE)
+                )
+            )
+
+    })
+
+
+    staff_gen_district <- reactive({
+        school_info %>%
+            dplyr::filter(district_name == district(),
+                          year == comp_year()) %>%
+            dplyr::select(total_in_district_fte) %>%
+            as.data.frame()
+    })
+
+    staff_gen_data <- reactive({
+        req(comp_districts())
+        dplyr::bind_rows(staff_gen_comp(), staff_gen_district()) %>%
+            t() %>%
+            data.frame() %>% 
+            dplyr::rename(other = X1,
+                   district = X2)
+    })
+    
+    output$staff_general <-  plotly::renderPlotly(
+        plotly::plot_ly(
+        staff_gen_data(),
+        x = ~ c('Total FTE'),
+        y = ~ district,
+        type = 'bar',
+        name = district(),
+        marker = list(color = '#DB9743'),
+        hovertemplate = paste(district()  , ': %{y:,.1f}<extra></extra>'),
+        texttemplate = '%{y:,.1f}',
+        textposition = 'auto'
+      ) %>%
+        plotly::add_trace(y = ~ other,
+                  name = 'Other',
+                   hovertemplate = 'Other: %{y:,.1f}<extra></extra>',
+                   texttemplate = '%{y:,.1f}',
+                  marker = list(color = '#2a3a6e')) %>%
+        plotly::layout(
+          xaxis = list(title = "", fixedrange = T, categoryorder = "array", categoryarray = c('PK', 'K', purrr::map_chr(seq(12), function(x){paste('Grade', x)}))),
+          yaxis = list(title = "", fixedrange = T,automargin = T),
+          barmode = 'group',
+          showlegend =F,
+          font = list(size = 18),
+          images = list(
+            source = "https://raw.githubusercontent.com/SCasanova/arxed_ddd/main/www/D3%20Logo.png",
+            x = 0.02, y = 1.08,
+            sizex = 0.2, sizey = 0.2
+        )
+        )
+    )
+    
+    staff_ratio_comp <- reactive({
+        school_info %>%
+            dplyr::filter(district_name %in% comp_districts(),
+                          year == comp_year()) %>%
+            dplyr::select(student_teacher_ratio) %>%
+            as.data.frame() %>%
+            dplyr::summarise(
+                dplyr::across(
+                    c(student_teacher_ratio),
+                    ~ mean(.x, na.rm = TRUE)
+                )
+            )
+
+    })
+
+
+    staff_ratio_district <- reactive({
+        school_info %>%
+            dplyr::filter(district_name == district(),
+                          year == comp_year()) %>%
+            dplyr::select(student_teacher_ratio) %>%
+            as.data.frame()
+    })
+
+    staff_ratio_data <- reactive({
+        req(comp_districts())
+        dplyr::bind_rows(staff_ratio_comp(), staff_ratio_district()) %>%
+            t() %>%
+            data.frame() %>% 
+            dplyr::rename(other = X1,
+                   district = X2)
+    })
+    
+    output$staff_ratio <-  plotly::renderPlotly(
+        plotly::plot_ly(
+        staff_ratio_data(),
+        x = ~ c('Student-Teacher Ratio'),
+        y = ~ district,
+        type = 'bar',
+        name = district(),
+        marker = list(color = '#DB9743'),
+        hovertemplate = paste(district()  , ': %{y}%<extra></extra>'),
+        texttemplate = '%{y}%',
+        textposition = 'auto'
+      ) %>%
+        plotly::add_trace(y = ~ other,
+                  name = 'Other',
+                   hovertemplate = 'Other: %{y:,.2f}%<extra></extra>',
+                   texttemplate = '%{y:,.1f}%',
+                  marker = list(color = '#2a3a6e')) %>%
+        plotly::layout(
+          xaxis = list(title = "", fixedrange = T),
+          yaxis = list(title = "%", fixedrange = T,automargin = T),
+          barmode = 'group',
+          showlegend =F,
+          font = list(size = 18)
+        )
+    )
     
 }
