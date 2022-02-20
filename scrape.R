@@ -81,10 +81,10 @@ diversity_2016 <- readxl::read_xlsx('~/Downloads/ClassSizebyRaceEthnicity(5).xls
   mutate(year = '2015-16')
 
 
-student_diversity <- bind_rows(diversity_2021, diversity_2020, diversity_2019, 
+student_diversity <- dplyr::bind_rows(diversity_2021, diversity_2020, diversity_2019, 
                            diversity_2018, diversity_2017, diversity_2016)
 
-write_csv(student_diversity, 'student_diversity.csv')
+readr::write_csv(student_diversity, 'student_diversity.csv')
 
 
 # Student Mobility --------------------------------------------------------
@@ -128,6 +128,42 @@ write_csv(student_mobility, 'student_mobility.csv')
 
 
 # Staff Diversity ---------------------------------------------------------
+
+diversity_2021 <- readxl::read_xlsx('~/Downloads/staffracegender(2).xlsx') %>% 
+  janitor::row_to_names(1) %>% 
+  janitor::clean_names()%>% 
+  mutate(year = '2020-21')
+
+diversity_2020 <- readxl::read_xlsx('~/Downloads/staffracegender(3).xlsx') %>% 
+  janitor::row_to_names(1) %>% 
+  janitor::clean_names()%>% 
+  mutate(year = '2019-20')
+
+diversity_2019 <- readxl::read_xlsx('~/Downloads/staffracegender(4).xlsx') %>% 
+  janitor::row_to_names(1) %>% 
+  janitor::clean_names() %>% 
+  mutate(year = '2018-19')
+
+diversity_2018 <- readxl::read_xlsx('~/Downloads/staffracegender(5).xlsx') %>% 
+  janitor::row_to_names(1) %>% 
+  janitor::clean_names()%>% 
+  mutate(year = '2017-18')
+
+diversity_2017 <- readxl::read_xlsx('~/Downloads/staffracegender(6).xlsx') %>% 
+  janitor::row_to_names(1) %>% 
+  janitor::clean_names()%>% 
+  mutate(year = '2016-17')
+
+diversity_2016 <- readxl::read_xlsx('~/Downloads/staffracegender(7).xlsx') %>% 
+  janitor::row_to_names(1) %>% 
+  janitor::clean_names()%>% 
+  mutate(year = '2015-16')
+
+
+student_diversity <- dplyr::bind_rows(diversity_2021, diversity_2020, diversity_2019, 
+                           diversity_2018, diversity_2017, diversity_2016)
+
+readr::write_csv(student_diversity, 'staff_diversity.csv')
 
 
 

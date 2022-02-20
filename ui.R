@@ -163,10 +163,10 @@ function(request){
                                         column(3,
                                                gt::gt_output("summary_table")),
                                         column(8,
-                                               h1(textOutput("district")),
+                                               h1(htmlOutput("district")),
                                                h3("-----"),
-                                               h3("Your District vs. Average of Selected Comparisons"),
-                                               h5(textOutput("comps"))),
+                                               h3(htmlOutput('district_vs')),
+                                               h5(htmlOutput("comps"))),
                                         column(1,
                                                imageOutput("logo", height = "auto"))
                                     ),
@@ -174,7 +174,7 @@ function(request){
                                         column(style='border-right: 2px solid black; border-top: 2px solid black; padding:20px ', width = 3,
                                                h3("Contract Elements"),
                                                h5("-----"),
-                                               h5("Your District vs. Average of All Other Districts"),
+                                               h5(textOutput('district_vs2')),
                                                h3("  "),
                                                imageOutput("legend2", height = "50px"),
                                                h3("  "),
@@ -282,7 +282,8 @@ function(request){
                                     column(
                                         style = 'padding:20px',
                                         width = 12,
-                                        plotly::plotlyOutput('student_mobility')
+                                        tags$div(plotly::plotlyOutput('student_mobility'),
+                                                 htmlOutput('mobility_info'))
                                     )
                                 ),
                             ),
@@ -307,34 +308,54 @@ function(request){
                                         plotly::plotlyOutput('staff_ratio')
                                     )
                                 ),
-                                fluidRow(
-                                    column(
-                                        style = 'padding:20px',
-                                        width = 12,
-                                        plotly::plotlyOutput('')
-                                    )
+                            fluidRow(
+                                column(
+                                    style = 'padding:20px',
+                                    width = 6,
+                                    plotly::plotlyOutput('district_gender')
                                 ),
+                                column(
+                                    style = 'padding:20px',
+                                    width = 6,
+                                    plotly::plotlyOutput('other_gender')
+                                )
+                            ),
                                 fluidRow(
                                     column(
                                         style = 'padding:20px',
                                         width = 8,
-                                        plotly::plotlyOutput('')
+                                        plotly::plotlyOutput('staff_diversity')
                                     ),
                                     column(
                                         style = 'padding:20px',
                                         width = 4,
-                                        plotly::plotlyOutput('')
+                                        plotly::plotlyOutput('staff_diversity_pie')
+                                    )
+                                )
+                            ),
+                            tabPanel(
+                                "Finances",
+                                fluidRow(
+                                    column(
+                                        style = 'padding:20px',
+                                        width = 12,
+                                        shinyscreenshot::screenshotButton(label = 'Download as Image', filename = 'ddn_students')
                                     )
                                 ),
                                 fluidRow(
                                     column(
                                         style = 'padding:20px',
-                                        width = 12,
-                                        plotly::plotlyOutput('')
+                                        width =6,
+                                        plotly::plotlyOutput('cola_plot_comp')
+                                    ),
+                                    column(
+                                        style = 'padding:20px',
+                                        width =6,
+                                        plotly::plotlyOutput('finances')
                                     )
-                                ),
+                                )
                             )
-                                            ), 
+                ), 
                 width = 12)
         )
 ))}
